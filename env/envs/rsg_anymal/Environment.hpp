@@ -54,7 +54,7 @@ class ENVIRONMENT : public RaisimGymEnv {
     anymal_->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 49;
+    obDim_ = 51;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);
     obDouble_.setZero(obDim_);
 
@@ -83,6 +83,7 @@ class ENVIRONMENT : public RaisimGymEnv {
       posError_.setZero();
       TEEpos_.setZero();
       PEEpos_.setZero();
+      baseError_.setZero(3);
 
       phaseSin_.setZero(2);
       footContactDouble_.setZero(4);
@@ -200,8 +201,12 @@ class ENVIRONMENT : public RaisimGymEnv {
 //  }
   double inclination = 10.0;
   double rewardgap = 10.0;
-  double Jointsm = rewardgap*(1/(1+std::exp(-inclination*(posError_.norm()-distance))))+1;
-  double Legsm = rewardgap*(1/(1+std::exp(inclination*(posError_.norm()-distance))))+1;
+  double rinclination = 1.0;
+  double rrewardgap = 1.0;
+  double Jointsm = rewardgap*(1/(1+std::exp(-inclination*(baseError_.norm()-distance))))+1;
+  double Legsm = rewardgap*(1/(1+std::exp(inclination*(baseError_.norm()-distance))))+1;
+  double Eerror = rrewardgap*(1/(1+std::exp(rinclination*(baseError_.norm()-distance))))+0.1;
+  double baerror = rrewardgap*(1/(1+std::exp(-rinclination*(baseError_.norm()-distance))))+0.1;
 
     Eigen::VectorXd jointPosTemp(12), jointPosWeight(12);
     jointPosWeight << 1.0, 0.,0.,1.,0.,0.,1.,0.,0.,1.,0.,0.;
@@ -210,7 +215,8 @@ class ENVIRONMENT : public RaisimGymEnv {
 
 //    getLogBarReward();
     //      rewards_.record("footSlip", footSlip_.sum());
-    rewards_.record("EEpos", std::exp(-posError_.norm()));
+    rewards_.record("EEpos", Eerror*std::exp(-posError_.norm()));
+    rewards_.record("basepos", baerror*std::exp(-baseError_.head(2).norm()));
 //    rewards_.record("forwardVel", std::min(1.0, bodyLinearVel_[0]));
 //    rewards_.record("Height", std::exp(-(gc_[2]-0.46)*(gc_[2]-0.46)));
 
@@ -239,8 +245,9 @@ class ENVIRONMENT : public RaisimGymEnv {
     auto EEFrameIndex_ = anymal_->getFrameIdxByName("kinova_joint_end_effector");
     anymal_->getFramePosition(EEFrameIndex_, PEEpos_);
     posError_ = TEEpos_-PEEpos_.e();
+    baseError_ = TEEpos_- gc_.head(3);
     Eigen::Vector3d posError = rot.e().transpose() * (posError_);
-
+    Eigen::Vector3d baseError = rot.e().transpose() * (baseError_);
 //      raisim::Mat<3,3> PEErot_;
 //      Eigen::Vector3d PEEori_;
 //      anymal_->getFrameOrientation(EEFrameIndex_,PEErot_);
@@ -253,8 +260,8 @@ class ENVIRONMENT : public RaisimGymEnv {
         gc_.tail(18), /// joint angles : 12
         bodyLinearVel_, bodyAngularVel_, /// body linear&angular velocity : 6
         gv_.tail(18),
-        posError
-        ;//rot.e().transpose()* PEEori_,phaseSin_(0),phaseSin_(1)
+        posError,
+        baseError.head(2);//rot.e().transpose()* PEEori_,phaseSin_(0),phaseSin_(1)
   }
 
   void observe(Eigen::Ref<EigenVec> ob) final {
@@ -396,7 +403,7 @@ class ENVIRONMENT : public RaisimGymEnv {
   double terminalRewardCoeff_ = -10.,phase_= 0,bodyOri_;
   raisim::Vec<3> PEEpos_;
   Eigen::VectorXd actionMean_, actionStd_, obDouble_;
-  Eigen::Vector3d bodyLinearVel_, bodyAngularVel_, TEEpos_, posError_;
+  Eigen::Vector3d bodyLinearVel_, bodyAngularVel_, TEEpos_, posError_,baseError_;
   std::set<size_t> footIndices_;
 
   /// these variables are not in use. They are placed to show you how to create a random number sampler.

@@ -14,14 +14,14 @@ environment:
   reward:
     EEpos:
       coeff: 0.5
-#    barrierFootContact:
-#      coeff: 0.01
+    basepos:
+      coeff: 0.5
 #    Height:
 #      coeff: 0.01
 #    bodyOri:
 #      coeff: 0.004
     Lsmoothness1:
-      coeff: -1e-2
+      coeff: -3e-3
     Jsmoothness1:
       coeff: -3e-3
 #    smoothness2:
