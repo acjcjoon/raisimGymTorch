@@ -1,0 +1,38 @@
+seed: 1
+record_video: yes
+
+environment:
+  render: True
+# just testing commenting
+  num_envs: 100
+  eval_every_n: 50
+  num_threads: 30
+  simulation_dt: 0.0005
+  control_dt: 0.01
+  max_time: 4.0
+  action_std: 0.3
+  reward:
+    EEpos:
+      coeff: 0.5
+#    barrierFootContact:
+#      coeff: 0.01
+#    Height:
+#      coeff: 0.01
+#    bodyOri:
+#      coeff: 0.004
+    Lsmoothness1:
+      coeff: -1e-2
+    Jsmoothness1:
+      coeff: -3e-3
+#    smoothness2:
+#      coeff: -4e-5
+    jointPos:
+      coeff: -4e-1
+#    pTarget:
+#      coeff: -3e-6
+    torque:
+      coeff: -4e-10
+
+architecture:
+  policy_net: [ 128, 128 ]
+  value_net: [ 128, 128 ]
